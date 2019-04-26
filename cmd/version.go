@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	PROGRAM_NAME    = "miningopt"
+	PROGRAM_NAME    = "whattle"
 	PROGRAM_TITLE   = "Ultimate Pit Optimization"
 	PROGRAM_VERSION = "v6.0.0"
 	COPYRIGHT       = "Copyright (C) 2019 Robert Wright"

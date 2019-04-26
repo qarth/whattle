@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/falconandy/MiningOpt/cmd"
+	"github.com/qarth/whattle/cmd"
 )
 
 func main() {

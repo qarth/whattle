@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	log "github.com/cihub/seelog"
-	"github.com/falconandy/MiningOpt/optimization"
+	"github.com/qarth/whattle/optimization"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
