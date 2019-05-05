@@ -22,7 +22,7 @@ type (
 
 func DoMiningOptimization(opt MiningOptParams) error {
 
-	log.Infof("Being parsing parameters from %v", opt.ParamFile)
+	log.Infof("Begin parsing parameters from %v", opt.ParamFile)
 	notifyStatus(opt.Notify, "Parsing parameters file")
 
 	var params Parameters
