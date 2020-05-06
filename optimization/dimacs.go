@@ -1,10 +1,12 @@
 package optimization
 
 import (
-	"github.com/clbanning/pseudo"
 	"math"
+
+	"github.com/clbanning/pseudo"
 )
 
+//Type DimacsSolver is part of the session/ctx/config for pseudoflow
 type (
 	DimacsSolver struct {
 		precision   float64
@@ -28,26 +30,31 @@ func newDimacsEngine(param *EngineParam) UltpitEngine {
 	return engine
 }
 
-func (this *DimacsSolver) computeSolution(ch chan<- string, data []float64, pre *Precedence) (solution []bool, r int) {
+func (this *pseudo.Session) computeSolution(ch chan<- string, data []float64, pre *Precedence) (solution []bool, r int) {
 
 	count := len(data)
-
 	solution = make([]bool, count)
 
-	session := this.createSession(data, pre)
+	notifyStatus(ch, "Init pseudo sess")
 
-	cut := session.Cut()
+	//Session is a pseudoflow session for the graph defined by economic block value and the block precedence
+	this.createSession(data, pre)
+	notifyStatus(ch, "Solved?")
+
+	cut := this.Cut()
 	for _, n := range cut {
 		if n != 1 {
 			solution[n-2] = true
 		}
 	}
 
+	//s := NewSession(Context{LowestLabel:true,DisplayCut:true})
+
 	return
 }
 
-func (this *DimacsSolver) createSession(data []float64, pre *Precedence) *pseudo.Session {
-	session := pseudo.NewSession(pseudo.Context{LowestLabel: this.lowestLabel, FifoBuckets: this.fifoBuckets})
+func (solver *DimacsSolver) createSession(data []float64, pre *Precedence) *pseudo.Session {
+	session := pseudo.NewSession(pseudo.Context{LowestLabel: solver.lowestLabel, FifoBuckets: solver.fifoBuckets})
 	sessionInitializer := pseudo.NewSessionInitializer(session)
 
 	// source and sink
@@ -66,32 +73,32 @@ func (this *DimacsSolver) createSession(data []float64, pre *Precedence) *pseudo
 	SINK := numNodes
 
 	sessionInitializer.Init(uint(numNodes), uint(numArcs))
-	sessionInitializer.SetSource(SOURCE)
+	sessionInitializer.SetSource(uint(SOURCE))
 	sessionInitializer.SetSink(uint(SINK))
 
-	var from_i, to_i int
+	var from_i, to_i uint
 
 	for i := 0; i < len(data); i++ {
 
-		capacity := int(math.Abs(data[i]) * this.precision)
+		capacity := int(math.Abs(data[i]) * solver.precision)
 
 		if data[i] < 0 {
-			from_i = i + 2
-			to_i = SINK
+			from_i = uint(i + 2)
+			to_i = uint(SINK)
 		} else {
-			from_i = SOURCE
-			to_i = i + 2
+			from_i = uint(SOURCE)
+			to_i = uint(i + 2)
 		}
 
-		sessionInitializer.AddArc(uint(from_i), uint(to_i), capacity)
+		sessionInitializer.AddArc(from_i, to_i, capacity)
 	}
 
 	// Now the infinite ones
 	for i := 0; i < len(data); i++ {
-		from_i = i + 2 // + 1 for psuedo, +1 for source
+		from_i = uint(i) + 2 // + 1 for psuedo, +1 for source
 		if ind := pre.keys[i]; ind != MISSING {
 			for _, off := range pre.defs[ind] {
-				sessionInitializer.AddArc(uint(from_i), uint(from_i+off), int(math.MaxUint32))
+				sessionInitializer.AddArc(from_i, from_i+uint(off), int(math.MaxUint32))
 			}
 		}
 	}

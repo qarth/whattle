@@ -10,6 +10,7 @@ import (
 
 var cfgFile string
 
+// cobra boilerplate
 var RootCmd = &cobra.Command{
 	Use:   "whattle",
 	Short: fmt.Sprintf("%v %v %v", PROGRAM_NAME, PROGRAM_VERSION, COPYRIGHT),
@@ -28,7 +29,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.xyz.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "miningopt", "config file (default is miningopt.yaml)")
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 

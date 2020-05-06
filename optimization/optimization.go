@@ -27,7 +27,7 @@ func DoMiningOptimization(opt MiningOptParams) error {
 
 	var params Parameters
 
-	if e := readJsonFile(opt.ParamFile, &params); e != nil {
+	if e := readJSONFile(opt.ParamFile, &params); e != nil {
 		return e
 	}
 

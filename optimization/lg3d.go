@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	Engine_LERCHSGROSSMANN = iota + 1
-	Engine_DIMACSPROGRAM
+	Engine_LERCHSGROSSMANN = 1
+	Engine_DIMACSPROGRAM   = 2
 )
 
 const (

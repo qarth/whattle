@@ -1,4 +1,4 @@
-module utils
+package utils
 
 /* Each block is identified in two ways: Using three indices
 ix, iy, and iz which are indices in the x, y, and z directions,

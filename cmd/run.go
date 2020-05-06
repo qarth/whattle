@@ -26,7 +26,7 @@ const (
 // runCmd represents the run command
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "run a mining optimization task",
+	Short: "run opt",
 	Long:  "run a mining optimization task",
 	Run: func(cmd *cobra.Command, args []string) {
 		doMiningOperation(cmd, args)
@@ -41,6 +41,7 @@ func init() {
 	flagset.StringP("input", "i", "", "The input file")
 	flagset.StringP("output", "o", "", "The output file")
 	flagset.StringP("log", "l", "", "Log information to a file")
+	flagset.StringP("params", "p", "", "Grid parameter json file")
 }
 
 func doMiningOperation(cmd *cobra.Command, args []string) {
@@ -50,8 +51,9 @@ func doMiningOperation(cmd *cobra.Command, args []string) {
 	logfile := viper.GetString("log")
 	infile := viper.GetString("input")
 	outfile := viper.GetString("output")
+	jsonFile := viper.GetString("params")
 
-	if len(infile) == 0 || len(outfile) == 0 || len(args) != 1 {
+	if len(infile) == 0 || len(outfile) == 0 || len(jsonFile) == 0 {
 		cmd.Usage()
 		return
 	}
@@ -77,7 +79,7 @@ func doMiningOperation(cmd *cobra.Command, args []string) {
 	param := optimization.MiningOptParams{
 		InputFile:  infile,
 		OutputFile: outfile,
-		ParamFile:  args[0],
+		ParamFile:  jsonFile,
 	}
 
 	log.Info("miningopt begin")

@@ -52,7 +52,7 @@ const (
 
 var paramsCmd = &cobra.Command{
 	Use:   "params",
-	Short: "Output the default parameters",
+	Short: "Output the default params",
 	Long:  "Output the default parameters",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(default_params)

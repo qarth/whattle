@@ -7,7 +7,7 @@ import (
 	log "github.com/cihub/seelog"
 )
 
-func readJsonFile(file string, ptr interface{}) error {
+func readJSONFile(file string, ptr interface{}) error {
 
 	if c, e := ioutil.ReadFile(file); e != nil {
 		log.Errorf("Error: failed initializing parameters: %v", e)
