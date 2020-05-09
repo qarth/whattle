@@ -1,1 +1,0 @@
-./main run -i test/bauxite_46800/data.txt.gz -o test/bauxite_46800/resultsd.txt.gz -p test/bauxite_46800/params.json

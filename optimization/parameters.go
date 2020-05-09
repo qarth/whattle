@@ -14,7 +14,7 @@ type (
 	}
 )
 
-func (ctx *Parameters) optimizating(ch chan<- string) ([][]bool, int) {
+func (ctx *Parameters) LG(ch chan<- string) ([][]bool, int) {
 
 	nReal := len(ctx.Input.Ebv)
 	nData := len(ctx.Input.Ebv[0])
@@ -70,9 +70,7 @@ func (ctx *Parameters) optimizating(ch chan<- string) ([][]bool, int) {
 	notifyStatus(ch, "Optimizing")
 
 	for r := 0; r < nReal; r++ {
-
 		engine, e := getEngine(&ctx.EngineParam)
-
 		if engine == nil {
 			log.Info("Error: failed initializing optimization engine: %v", e)
 			return nil, 1

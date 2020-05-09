@@ -11,8 +11,8 @@ import (
 )
 
 type (
-	MiningOptParams struct {
-		TaskId     string
+	RunCtx struct {
+		TaskID     string
 		Notify     chan string
 		InputFile  string
 		OutputFile string
@@ -20,7 +20,7 @@ type (
 	}
 )
 
-func DoMiningOptimization(opt MiningOptParams) error {
+func StartRead(opt RunCtx) error {
 
 	log.Infof("Begin parsing parameters from %v", opt.ParamFile)
 	notifyStatus(opt.Notify, "Parsing parameters file")
@@ -38,7 +38,7 @@ func DoMiningOptimization(opt MiningOptParams) error {
 		return e
 	}
 
-	selection, status := params.optimizating(opt.Notify)
+	selection, status := params.LG(opt.Notify)
 
 	if status != 0 {
 		e := fmt.Errorf("Failed do optimization")

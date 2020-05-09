@@ -7,15 +7,12 @@ import (
 const (
 	Engine_LERCHSGROSSMANN = 1
 	Engine_DIMACSPROGRAM   = 2
-)
-
-const (
-	PLUS    = true
-	MINUS   = false
-	STRONG  = true
-	WEAK    = false
-	ROOT    = -1
-	NOTHING = -1
+	PLUS                   = true
+	MINUS                  = false
+	STRONG                 = true
+	WEAK                   = false
+	ROOT                   = -1
+	NOTHING                = -1
 )
 
 type (

@@ -1,36 +1,39 @@
 package optimization
 
 import (
+	"bufio"
+	"fmt"
 	"math"
+	"os"
+	"time"
 
 	"github.com/clbanning/pseudo"
 )
 
-//Type DimacsSolver is part of the session/ctx/config for pseudoflow
-type (
-	DimacsSolver struct {
-		precision   float64
-		lowestLabel bool
-		fifoBuckets bool
-	}
-)
+//Type DimacsSolver is part of the session/ctx/config for pseudoflow??
+
+type DimacsSolver struct {
+	Precision   float64
+	LowestLabel bool
+	FifoBuckets bool
+}
 
 func newDimacsEngine(param *EngineParam) UltpitEngine {
 
 	engine := &DimacsSolver{
-		precision:   param.Precision,
-		lowestLabel: param.LowestLabel,
-		fifoBuckets: param.FifoBuckets,
+		Precision:   param.Precision,
+		LowestLabel: param.LowestLabel,
+		FifoBuckets: param.FifoBuckets,
 	}
 
-	if math.Abs(engine.precision) < 1e6 {
-		engine.precision = 100.0
+	if math.Abs(engine.Precision) < 1e6 {
+		engine.Precision = 100.0
 	}
 
 	return engine
 }
 
-func (this *pseudo.Session) computeSolution(ch chan<- string, data []float64, pre *Precedence) (solution []bool, r int) {
+func (this *DimacsSolver) computeSolution(ch chan<- string, data []float64, pre *Precedence) (solution []bool, r int) {
 
 	count := len(data)
 	solution = make([]bool, count)
@@ -38,10 +41,22 @@ func (this *pseudo.Session) computeSolution(ch chan<- string, data []float64, pr
 	notifyStatus(ch, "Init pseudo sess")
 
 	//Session is a pseudoflow session for the graph defined by economic block value and the block precedence
-	this.createSession(data, pre)
-	notifyStatus(ch, "Solved?")
+	// this.CreateSession(data, pre)
 
-	cut := this.Cut()
+	notifyStatus(ch, "Solved?")
+	hpf := this.createSession(data, pre)
+	cut := hpf.Cut()
+
+	f, err := os.Create("dat2")
+	if err != nil {
+		fmt.Println("origin : ", time.Now().String())
+	}
+
+	defer f.Close()
+	w := bufio.NewWriter(f)
+	header := time.Now()
+	hpf.Process(w, header.String())
+	w.Flush()
 	for _, n := range cut {
 		if n != 1 {
 			solution[n-2] = true
@@ -54,7 +69,7 @@ func (this *pseudo.Session) computeSolution(ch chan<- string, data []float64, pr
 }
 
 func (solver *DimacsSolver) createSession(data []float64, pre *Precedence) *pseudo.Session {
-	session := pseudo.NewSession(pseudo.Context{LowestLabel: solver.lowestLabel, FifoBuckets: solver.fifoBuckets})
+	session := pseudo.NewSession(pseudo.Context{LowestLabel: solver.LowestLabel, FifoBuckets: solver.FifoBuckets})
 	sessionInitializer := pseudo.NewSessionInitializer(session)
 
 	// source and sink
@@ -80,7 +95,7 @@ func (solver *DimacsSolver) createSession(data []float64, pre *Precedence) *pseu
 
 	for i := 0; i < len(data); i++ {
 
-		capacity := int(math.Abs(data[i]) * solver.precision)
+		capacity := int(math.Abs(data[i]) * solver.Precision)
 
 		if data[i] < 0 {
 			from_i = uint(i + 2)
