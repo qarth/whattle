@@ -5,29 +5,30 @@ import (
 )
 
 const (
-	Engine_LERCHSGROSSMANN = 1
-	Engine_DIMACSPROGRAM   = 2
-	PLUS                   = true
-	MINUS                  = false
-	STRONG                 = true
-	WEAK                   = false
-	ROOT                   = -1
-	NOTHING                = -1
+	LERCHSGROSSMANN = 1 //required downstream
+	DIMACSPROGRAM   = 2 //required downstream
+	PLUS            = true
+	MINUS           = false
+	STRONG          = true
+	WEAK            = false
+	ROOT            = -1
+	NOTHING         = -1
 )
 
 type (
-	EngineParam struct {
+	// ConfigParams is loaded from json
+	ConfigParams struct {
 		EngineType  int     `json:"engine"`
 		Precision   float64 `json:"precision"`
 		LowestLabel bool    `json:"lowest_label"`
 		FifoBuckets bool    `json:"fifo_buckets"`
 	}
-
-	UltpitEngine interface {
+	// UEngine was UltpitEngine
+	UEngine interface {
 		computeSolution(ch chan<- string, data []float64, pre *Precedence) ([]bool, int)
 	}
-
-	LG_Vertex struct {
+	// Vertex is a node/vertex in a graph, loaded from file
+	Vertex struct {
 		mass     float64
 		rootEdge int
 		myOffs   []int
@@ -35,21 +36,21 @@ type (
 		outEdges []int
 		strength bool
 	}
-
-	LG_Edge struct {
+	// Edge is a edge in a graph, loaded from file
+	Edge struct {
 		mass      float64
 		source    int
 		target    int
 		direction bool
 	}
-
+	// IntStack is a stack of integers
 	IntStack struct {
 		items []int
 	}
-
+	// LG3D is the problem space in the lercsh grossman method
 	LG3D struct {
-		V                []*LG_Vertex
-		E                []*LG_Edge
+		V                []*Vertex
+		E                []*Edge
 		arcsAdded        int64
 		countSinceChange int64
 		count            int
@@ -59,105 +60,105 @@ type (
 	}
 )
 
-func getEngine(param *EngineParam) (UltpitEngine, error) {
+func getEngine(param *ConfigParams) (UEngine, error) {
 	switch param.EngineType {
-	case Engine_LERCHSGROSSMANN:
+	case LERCHSGROSSMANN:
 		return new(LG3D), nil
-	case Engine_DIMACSPROGRAM:
+	case DIMACSPROGRAM:
 		return newDimacsEngine(param), nil
 	default:
 		return nil, fmt.Errorf("Invalid engine type")
 	}
 }
 
-func (this *LG3D) computeSolution(ch chan<- string, data []float64, pre *Precedence) (solution []bool, n int) {
+func (lg *LG3D) computeSolution(ch chan<- string, data []float64, pre *Precedence) (solution []bool, n int) {
 
-	this.count = len(data)
+	lg.count = len(data)
 
-	solution = make([]bool, this.count)
+	solution = make([]bool, lg.count)
 
 	notifyStatus(ch, "Init normalized tree")
-	this.initNormalizedTree(data, pre)
+	lg.initNormalizedTree(data, pre)
 
 	notifyStatus(ch, "Solve")
-	this.solve()
+	lg.solve()
 
-	for i := 0; i < this.count; i++ {
-		solution[i] = this.V[i].strength
+	for i := 0; i < lg.count; i++ {
+		solution[i] = lg.V[i].strength
 	}
 
 	return
 }
 
-func (this *LG3D) initNormalizedTree(data []float64, pre *Precedence) {
+func (lg *LG3D) initNormalizedTree(data []float64, pre *Precedence) {
 
-	this.V = make([]*LG_Vertex, this.count)
-	this.E = make([]*LG_Edge, this.count)
+	lg.V = make([]*Vertex, lg.count)
+	lg.E = make([]*Edge, lg.count)
 
-	this.strongPlusses = new(IntStack)
-	this.strongMinuses = new(IntStack)
+	lg.strongPlusses = new(IntStack)
+	lg.strongMinuses = new(IntStack)
 
-	var vi *LG_Vertex
+	var vi *Vertex
 
-	for i := 0; i < this.count; i++ {
+	for i := 0; i < lg.count; i++ {
 
 		if pre.keys[i] != NOTHING {
-			vi = &LG_Vertex{myOffs: pre.defs[pre.keys[i]]}
+			vi = &Vertex{myOffs: pre.defs[pre.keys[i]]}
 		} else {
-			vi = &LG_Vertex{}
+			vi = &Vertex{}
 		}
 
 		vi.mass = data[i]
 		vi.rootEdge = i
 		vi.strength = (data[i] > 0)
-		this.V[i] = vi
+		lg.V[i] = vi
 
-		ei := &LG_Edge{}
+		ei := &Edge{}
 		ei.mass = data[i]
 		ei.source = ROOT
 		ei.target = i
 		ei.direction = PLUS
-		this.E[i] = ei
+		lg.E[i] = ei
 	}
 }
 
-func (this *LG3D) solve() {
+func (lg *LG3D) solve() {
 
 	var xk int
 
-	for this.countSinceChange++; this.countSinceChange <= int64(this.count); this.countSinceChange++ {
+	for lg.countSinceChange++; lg.countSinceChange <= int64(lg.count); lg.countSinceChange++ {
 
-		if this.V[xk].strength {
+		if lg.V[xk].strength {
 
-			if xi := this.checkPrecedence(xk); xi != -1 {
-				this.moveTowardFeasibility(xk, xi)
-				this.arcsAdded++
+			if xi := lg.checkPrecedence(xk); xi != -1 {
+				lg.moveTowardFeasibility(xk, xi)
+				lg.arcsAdded++
 			}
 
-			for range this.strongPlusses.items {
-				this.swapStrongPlus(this.strongPlusses.pop())
+			for range lg.strongPlusses.items {
+				lg.swapStrongPlus(lg.strongPlusses.pop())
 			}
 
-			for range this.strongMinuses.items {
-				this.swapStrongMinus(this.strongMinuses.pop())
+			for range lg.strongMinuses.items {
+				lg.swapStrongMinus(lg.strongMinuses.pop())
 			}
 		}
 
-		if xk++; xk >= this.count {
+		if xk++; xk >= lg.count {
 			xk = 0
 		}
 	}
 }
 
-func (this *LG3D) moveTowardFeasibility(xk, xi int) {
+func (lg *LG3D) moveTowardFeasibility(xk, xi int) {
 
-	xkStack := this.stackToRoot(xk)
-	xiStack := this.stackToRoot(xi)
+	xkStack := lg.stackToRoot(xk)
+	xiStack := lg.stackToRoot(xi)
 
 	lowestRootEdge := xkStack.pop()
 
-	E := this.E
-	V := this.V
+	E := lg.E
+	V := lg.V
 
 	baseMass := E[lowestRootEdge].mass
 	E[lowestRootEdge].source = xk
@@ -194,11 +195,11 @@ func (this *LG3D) moveTowardFeasibility(xk, xi int) {
 		E[e].direction = !E[e].direction
 		E[e].mass = baseMass - E[e].mass
 
-		if this.isStrong(E[e]) {
+		if lg.isStrong(E[e]) {
 			if E[e].direction {
-				this.strongPlusses.push(e)
+				lg.strongPlusses.push(e)
 			} else {
-				this.strongMinuses.push(e)
+				lg.strongMinuses.push(e)
 			}
 		}
 	}
@@ -215,90 +216,90 @@ func (this *LG3D) moveTowardFeasibility(xk, xi int) {
 
 		E[e].mass += baseMass
 
-		if this.isStrong(E[e]) {
+		if lg.isStrong(E[e]) {
 			if E[e].direction {
-				this.strongPlusses.push(e)
+				lg.strongPlusses.push(e)
 			} else {
-				this.strongMinuses.push(e)
+				lg.strongMinuses.push(e)
 			}
 		}
 	}
 
 	if newMass > 0 {
-		this.activateBranchToxk(newRootEdge, xk)
+		lg.activateBranchToxk(newRootEdge, xk)
 	} else {
-		this.deactivateBranch(newRootEdge)
+		lg.deactivateBranch(newRootEdge)
 	}
 
-	this.countSinceChange = 0
+	lg.countSinceChange = 0
 }
 
-func (this *LG3D) activateBranchToxk(base, xk int) {
+func (lg *LG3D) activateBranchToxk(base, xk int) {
 
 	var nextV int
 
-	if this.E[base].direction {
-		nextV = this.E[base].target
+	if lg.E[base].direction {
+		nextV = lg.E[base].target
 	} else {
-		nextV = this.E[base].source
+		nextV = lg.E[base].source
 	}
 
 	if nextV != xk {
 
-		for _, edge := range this.V[nextV].outEdges {
-			this.activateBranchToxk(edge, xk)
+		for _, edge := range lg.V[nextV].outEdges {
+			lg.activateBranchToxk(edge, xk)
 		}
 
-		for _, edge := range this.V[nextV].inEdges {
-			this.activateBranchToxk(edge, xk)
+		for _, edge := range lg.V[nextV].inEdges {
+			lg.activateBranchToxk(edge, xk)
 		}
 	}
 
-	this.V[nextV].strength = true
+	lg.V[nextV].strength = true
 }
 
-func (this *LG3D) deactivateBranch(base int) {
+func (lg *LG3D) deactivateBranch(base int) {
 
 	var nextV int
 
-	if this.E[base].direction {
-		nextV = this.E[base].target
+	if lg.E[base].direction {
+		nextV = lg.E[base].target
 	} else {
-		nextV = this.E[base].source
+		nextV = lg.E[base].source
 	}
 
-	for _, edge := range this.V[nextV].outEdges {
-		this.deactivateBranch(edge)
+	for _, edge := range lg.V[nextV].outEdges {
+		lg.deactivateBranch(edge)
 	}
 
-	for _, edge := range this.V[nextV].inEdges {
-		this.deactivateBranch(edge)
+	for _, edge := range lg.V[nextV].inEdges {
+		lg.deactivateBranch(edge)
 	}
 
-	this.V[nextV].strength = false
+	lg.V[nextV].strength = false
 }
 
-func (this *LG3D) isStrong(e *LG_Edge) bool {
+// else return false changed
+func (lg *LG3D) isStrong(e *Edge) bool {
 	if e.source != ROOT && e.target != ROOT {
 		return ((e.mass > 0) == e.direction)
-	} else {
-		return false
 	}
+	return false
 }
 
-func (this *LG3D) stackToRoot(k int) *IntStack {
+func (lg *LG3D) stackToRoot(k int) *IntStack {
 
 	var next int
 	current := k
 	stack := new(IntStack)
 
 	for {
-		edge := this.V[current].rootEdge
+		edge := lg.V[current].rootEdge
 
-		if this.E[edge].direction {
-			next = this.E[edge].source
+		if lg.E[edge].direction {
+			next = lg.E[edge].source
 		} else {
-			next = this.E[edge].target
+			next = lg.E[edge].target
 		}
 
 		stack.push(edge)
@@ -313,9 +314,9 @@ func (this *LG3D) stackToRoot(k int) *IntStack {
 	return stack
 }
 
-func (this *LG3D) checkPrecedence(k int) int {
-	for _, off := range this.V[k].myOffs {
-		if !this.V[k+off].strength {
+func (lg *LG3D) checkPrecedence(k int) int {
+	for _, off := range lg.V[k].myOffs {
+		if !lg.V[k+off].strength {
 			return k + off
 		}
 	}
@@ -323,20 +324,20 @@ func (this *LG3D) checkPrecedence(k int) int {
 }
 
 // Normalize
-func (this *LG3D) swapStrongPlus(e int) {
+func (lg *LG3D) swapStrongPlus(e int) {
 
 	// Ensure that it is still a strong plus.
-	if !this.isStrong(this.E[e]) {
+	if !lg.isStrong(lg.E[e]) {
 		return
 	}
 
-	E := this.E
-	V := this.V
+	E := lg.E
+	V := lg.V
 
 	source := E[e].source
 	target := E[e].target
 
-	thisMass := E[e].mass
+	mass := E[e].mass
 
 	var next, last int
 
@@ -353,7 +354,7 @@ func (this *LG3D) swapStrongPlus(e int) {
 			next = E[edge].target
 		}
 
-		E[edge].mass -= thisMass
+		E[edge].mass -= mass
 
 		if current = next; current == ROOT {
 			break
@@ -369,27 +370,27 @@ func (this *LG3D) swapStrongPlus(e int) {
 
 	if baseMass > 0 {
 		if !V[source].strength {
-			this.activateBranchToxk(e, -1)
+			lg.activateBranchToxk(e, -1)
 		}
 	} else if V[target].strength {
-		this.deactivateBranch(baseEdge)
+		lg.deactivateBranch(baseEdge)
 	}
 }
 
-func (this *LG3D) swapStrongMinus(e int) {
+func (lg *LG3D) swapStrongMinus(e int) {
 
 	// Ensure that it is still a strong minus.
-	if !this.isStrong(this.E[e]) {
+	if !lg.isStrong(lg.E[e]) {
 		return
 	}
 
-	E := this.E
-	V := this.V
+	E := lg.E
+	V := lg.V
 
 	source := E[e].source
 	target := E[e].target
 
-	thisMass := E[e].mass
+	mass := E[e].mass
 
 	var next int
 
@@ -404,7 +405,7 @@ func (this *LG3D) swapStrongMinus(e int) {
 			next = E[edge].target
 		}
 
-		E[edge].mass -= thisMass
+		E[edge].mass -= mass
 
 		if current = next; current == ROOT {
 			break
@@ -418,64 +419,63 @@ func (this *LG3D) swapStrongMinus(e int) {
 
 //---------------------------------------------------------------------------
 
-func (this *LG_Vertex) addInEdge(e int) {
-	this.inEdges = append(this.inEdges, e)
+func (lg *Vertex) addInEdge(e int) {
+	lg.inEdges = append(lg.inEdges, e)
 }
 
-func (this *LG_Vertex) addOutEdge(e int) {
-	this.outEdges = append(this.outEdges, e)
+func (lg *Vertex) addOutEdge(e int) {
+	lg.outEdges = append(lg.outEdges, e)
 }
 
-func (this *LG_Vertex) removeInEdge(e int) {
-	for i, x := range this.inEdges {
+func (lg *Vertex) removeInEdge(e int) {
+	for i, x := range lg.inEdges {
 		if x == e {
-			cnt := len(this.inEdges)
-			copy(this.inEdges[i:], this.inEdges[i+1:])
-			this.inEdges = this.inEdges[:cnt-1]
+			cnt := len(lg.inEdges)
+			copy(lg.inEdges[i:], lg.inEdges[i+1:])
+			lg.inEdges = lg.inEdges[:cnt-1]
 		}
 	}
 }
 
-func (this *LG_Vertex) removeOutEdge(e int) {
-	for i, x := range this.outEdges {
+func (lg *Vertex) removeOutEdge(e int) {
+	for i, x := range lg.outEdges {
 		if x == e {
-			cnt := len(this.outEdges)
-			copy(this.outEdges[i:], this.outEdges[i+1:])
-			this.outEdges = this.outEdges[:cnt-1]
+			cnt := len(lg.outEdges)
+			copy(lg.outEdges[i:], lg.outEdges[i+1:])
+			lg.outEdges = lg.outEdges[:cnt-1]
 		}
 	}
 }
 
 //---------------------------------------------------------------------------
 
-func (this *IntStack) push(t int) {
-	this.items = append(this.items, t)
+func (stack *IntStack) push(t int) {
+	stack.items = append(stack.items, t)
 }
 
-func (this *IntStack) pop() int {
-	if l := len(this.items); l > 0 {
-		t := this.items[l-1]
-		this.items = this.items[:l-1]
+func (stack *IntStack) pop() int {
+	if l := len(stack.items); l > 0 {
+		t := stack.items[l-1]
+		stack.items = stack.items[:l-1]
 		return t
+	}
+	panic("Empty Stack.")
+	return -1
+}
+
+func (stack *IntStack) peek() int {
+	if l := len(stack.items); l > 0 {
+		return stack.items[l-1]
 	} else {
+
 		panic("Empty Stack.")
-		return -1
 	}
 }
 
-func (this *IntStack) peek() int {
-	if l := len(this.items); l > 0 {
-		return this.items[l-1]
-	} else {
-		panic("Empty Stack.")
-		return -1
-	}
+func (stack *IntStack) empty() bool {
+	return len(stack.items) == 0
 }
 
-func (this *IntStack) empty() bool {
-	return len(this.items) == 0
-}
-
-func (this *IntStack) notEmpty() bool {
-	return len(this.items) != 0
+func (stack *IntStack) notEmpty() bool {
+	return len(stack.items) != 0
 }

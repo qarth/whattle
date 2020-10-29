@@ -29,7 +29,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "miningopt", "config file (default is miningopt.yaml)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "whattle", "config file (default is whattle.yaml)")
 	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
@@ -39,7 +39,7 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
-	viper.SetConfigName("miningopt")
+	viper.SetConfigName("whattle")
 	viper.AutomaticEnv()
 
 	if err := viper.ReadInConfig(); err == nil {

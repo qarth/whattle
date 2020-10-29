@@ -8,9 +8,9 @@ import (
 
 type (
 	Parameters struct {
-		Input       Data `json:"input"`
-		Precedence  `json:"precedence"`
-		EngineParam `json:"optimization"`
+		Input        Data `json:"input"`
+		Precedence   `json:"precedence"`
+		ConfigParams `json:"optimization"`
 	}
 )
 

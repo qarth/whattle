@@ -22,26 +22,26 @@ const (
 	BENCH       = 1
 	MISSING     = -1
 	MIN_BENCHES = 1
-	MAX_BENCHES = 15
+	MAX_BENCHES = 99
 	MIN_SLOPE   = 10.0
 	MAX_SLOPE   = 80.0
 )
 
-func (this *Precedence) init(ctx *Parameters, mask []bool) error {
+func (prec *Precedence) init(ctx *Parameters, mask []bool) error {
 
 	var e error
 
-	if this.Method != BENCH {
+	if prec.Method != BENCH {
 		e = fmt.Errorf("Invalid Precedence method")
-	} else if this.NumBenches < MIN_BENCHES || this.NumBenches > MAX_BENCHES {
+	} else if prec.NumBenches < MIN_BENCHES || prec.NumBenches > MAX_BENCHES {
 		e = fmt.Errorf(
 			"ERROR: benches must be between %v and %v. Supplied: %v",
-			MIN_BENCHES, MAX_BENCHES, this.NumBenches,
+			MIN_BENCHES, MAX_BENCHES, prec.NumBenches,
 		)
-	} else if this.Slope < MIN_SLOPE || this.Slope > MAX_SLOPE {
+	} else if prec.Slope < MIN_SLOPE || prec.Slope > MAX_SLOPE {
 		e = fmt.Errorf(
 			"ERROR: slope must be between %v and %v. Supplied: %v",
-			MIN_SLOPE, MAX_SLOPE, this.Slope,
+			MIN_SLOPE, MAX_SLOPE, prec.Slope,
 		)
 	} else if len(mask) != ctx.Input.Grid.gridCount() {
 		e = fmt.Errorf("ERROR: mask size does not equal grid size")
@@ -51,18 +51,18 @@ func (this *Precedence) init(ctx *Parameters, mask []bool) error {
 		log.Error(e)
 		return e
 	} else {
-		this.genBench(ctx, mask)
-		this.logExtraInfo()
+		prec.genBench(ctx, mask)
+		prec.logExtraInfo()
 		return nil
 	}
 }
 
-func (this *Precedence) genBench(ctx *Parameters, mask []bool) {
+func (prec *Precedence) genBench(ctx *Parameters, mask []bool) {
 
 	pg := &ctx.Input.Grid
 
-	theta := this.Slope * math.Pi / 180.0
-	maxVert := float64(this.NumBenches) * pg.SizZ
+	theta := prec.Slope * math.Pi / 180.0
+	maxVert := float64(prec.NumBenches) * pg.SizZ
 	maxRadius := maxVert / math.Tan(theta)
 
 	xblock := int(maxRadius / pg.SizX)
@@ -70,7 +70,7 @@ func (this *Precedence) genBench(ctx *Parameters, mask []bool) {
 
 	xblocks := xblock*2 + 1
 	yblocks := yblock*2 + 1
-	zblocks := this.NumBenches
+	zblocks := prec.NumBenches
 
 	xcenter := xblock
 	ycenter := yblock
@@ -114,7 +114,7 @@ func (this *Precedence) genBench(ctx *Parameters, mask []bool) {
 		offTemplate[z] = dimy
 	}
 
-	log.Infof("Number of naive arcs in template: %v", this.countTemplate(offTemplate))
+	log.Infof("Number of naive arcs in template: %v", prec.countTemplate(offTemplate))
 
 	//---------------------------------------------------------------------------
 
@@ -130,7 +130,7 @@ func (this *Precedence) genBench(ctx *Parameters, mask []bool) {
 		offTemplate[z][yblock][xblock] = true
 	}
 
-	log.Infof("  after basic trimming: %v", this.countTemplate(offTemplate))
+	log.Infof("  after basic trimming: %v", prec.countTemplate(offTemplate))
 
 	//---------------------------------------------------------------------------
 
@@ -153,13 +153,13 @@ func (this *Precedence) genBench(ctx *Parameters, mask []bool) {
 		}
 	}
 
-	this.addToDefs(firstDef)
+	prec.addToDefs(firstDef)
 
 	//---------------------------------------------------------------------------
 
-	this.keys = make([]int, pg.gridCount())
-	for i := range this.keys {
-		this.keys[i] = MISSING
+	prec.keys = make([]int, pg.gridCount())
+	for i := range prec.keys {
+		prec.keys[i] = MISSING
 	}
 
 	hit := make([]bool, pg.gridCount())
@@ -192,7 +192,7 @@ func (this *Precedence) genBench(ctx *Parameters, mask []bool) {
 				}
 
 				if len(thisdef) > 0 {
-					this.keys[loc] = this.addToDefs(thisdef)
+					prec.keys[loc] = prec.addToDefs(thisdef)
 				}
 
 				loc++
@@ -202,10 +202,10 @@ func (this *Precedence) genBench(ctx *Parameters, mask []bool) {
 }
 
 // Try to add the given definition to the defs, return the key
-func (this *Precedence) addToDefs(defs []int) int {
+func (prec *Precedence) addToDefs(defs []int) int {
 
 	// Check for duplicates
-	for idx, array := range this.defs {
+	for idx, array := range prec.defs {
 
 		if len(array) != len(defs) {
 			continue
@@ -225,13 +225,13 @@ func (this *Precedence) addToDefs(defs []int) int {
 		}
 	}
 
-	this.defs = append(this.defs, defs)
+	prec.defs = append(prec.defs, defs)
 
-	return len(this.defs) - 1
+	return len(prec.defs) - 1
 }
 
 // count the trues in the template
-func (this *Precedence) countTemplate(temp [][][]bool) (n int) {
+func (prec *Precedence) countTemplate(temp [][][]bool) (n int) {
 	for _, bench := range temp {
 		for _, row := range bench {
 			for _, v := range row {
@@ -244,22 +244,22 @@ func (this *Precedence) countTemplate(temp [][][]bool) (n int) {
 	return
 }
 
-func (this *Precedence) logExtraInfo() {
+func (prec *Precedence) logExtraInfo() {
 
 	var count int
 	var arcCount int64
 
-	for _, v := range this.keys {
+	for _, v := range prec.keys {
 		if v != MISSING {
 			count++
-			arcCount += int64(len(this.defs[v]))
+			arcCount += int64(len(prec.defs[v]))
 		}
 	}
 
-	log.Infof("Number of keys: %v", len(this.keys))
+	log.Infof("Number of keys: %v", len(prec.keys))
 	log.Infof("  with arcs: %v", count)
-	log.Infof("  without: %v", len(this.keys)-count)
-	log.Infof("Number of different arc templates: %v", len(this.defs))
+	log.Infof("  without: %v", len(prec.keys)-count)
+	log.Infof("Number of different arc templates: %v", len(prec.defs))
 
 	log.Infof("Number of uncompressed arcs: %v", arcCount)
 }

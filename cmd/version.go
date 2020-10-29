@@ -9,8 +9,8 @@ import (
 const (
 	PROGRAM_NAME    = "whattle"
 	PROGRAM_TITLE   = "Ultimate Pit Optimization"
-	PROGRAM_VERSION = "v6.0.0"
-	COPYRIGHT       = "Copyright (C) 2019 Robert Wright"
+	PROGRAM_VERSION = "v6.1.0"
+	COPYRIGHT       = "Copyright (C) 2020 Robert Wright"
 )
 
 var versionCmd = &cobra.Command{
@@ -18,7 +18,7 @@ var versionCmd = &cobra.Command{
 	Short: "Output the program version",
 	Long:  "Output the program version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("%s %s\n", PROGRAM_NAME, PROGRAM_VERSION)
+		fmt.Printf("%s %s\n", PROGRAM_NAME, PROGRAM_VERSION, COPYRIGHT)
 	},
 }
 

@@ -34,9 +34,7 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
-
 	RootCmd.AddCommand(runCmd)
-
 	flagset := runCmd.PersistentFlags()
 	flagset.StringP("input", "i", "", "The input file")
 	flagset.StringP("output", "o", "", "The output file")
@@ -47,34 +45,27 @@ func init() {
 func runOpt(cmd *cobra.Command, args []string) {
 
 	viper.BindPFlags(cmd.Flags())
-
 	logfile := viper.GetString("log")
 	infile := viper.GetString("input")
 	outfile := viper.GetString("output")
 	jsonFile := viper.GetString("params")
+
+	outputDest := "<console/>"
 
 	if len(infile) == 0 || len(outfile) == 0 || len(jsonFile) == 0 {
 		cmd.Usage()
 		return
 	}
 
-	//-------
-
-	outputDest := "<console/>"
-
 	if len(logfile) > 0 {
 		outputDest = fmt.Sprintf(log_file_tmpl, logfile)
 	}
-
 	log_cfg := strings.Replace(log_cfg_tmpl, log_out_dest, outputDest, -1)
-
 	logger, _ := log.LoggerFromConfigAsString(log_cfg)
 
 	if logger != nil {
 		log.ReplaceLogger(logger)
 	}
-
-	//-------
 
 	param := optimization.RunCtx{
 		InputFile:  infile,
@@ -82,10 +73,8 @@ func runOpt(cmd *cobra.Command, args []string) {
 		ParamFile:  jsonFile,
 	}
 
-	log.Info("miningopt begin")
-
+	log.Info(fmt.Printf("%s %s begin!\n", PROGRAM_NAME, PROGRAM_VERSION))
 	optimization.StartRead(param)
-
-	log.Info("miningopt finished")
+	log.Info(fmt.Printf("%s %s complete\n", PROGRAM_NAME, PROGRAM_VERSION))
 	log.Flush()
 }

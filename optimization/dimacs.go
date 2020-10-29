@@ -18,7 +18,7 @@ type DimacsSolver struct {
 	FifoBuckets bool
 }
 
-func newDimacsEngine(param *EngineParam) UltpitEngine {
+func newDimacsEngine(param *ConfigParams) UEngine {
 
 	engine := &DimacsSolver{
 		Precision:   param.Precision,
@@ -57,6 +57,7 @@ func (this *DimacsSolver) computeSolution(ch chan<- string, data []float64, pre 
 	header := time.Now()
 	hpf.Process(w, header.String())
 	w.Flush()
+
 	for _, n := range cut {
 		if n != 1 {
 			solution[n-2] = true
